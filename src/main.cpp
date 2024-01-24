@@ -36,38 +36,22 @@ float calculate_height(float temp_c, float pressure_k){
 #define FLOAT_REGISTER_I2C(x) (uint8_t *)(&x), (uint8_t *)(&x) + 1, (uint8_t *)(&x) + 2, (uint8_t *)(&x) + 3, 
 
 uint8_t * mem_locations[] = {
-    FLOAT_REGISTER_I2C(raw_accelerometer_acceleration.x)
-    FLOAT_REGISTER_I2C(raw_accelerometer_acceleration.y)
-    FLOAT_REGISTER_I2C(raw_accelerometer_acceleration.z)
-    FLOAT_REGISTER_I2C(raw_gyroscope_angular_velocity.x)
-    FLOAT_REGISTER_I2C(raw_gyroscope_angular_velocity.y)
-    FLOAT_REGISTER_I2C(raw_gyroscope_angular_velocity.z)
+    FLOAT_REGISTER_I2C(raw_accelerometer_acceleration.x) // 0x00
+    FLOAT_REGISTER_I2C(raw_gyroscope_angular_velocity.x) // 0x01
 
-    FLOAT_REGISTER_I2C(bmp_data[0])
-    FLOAT_REGISTER_I2C(bmp_data[1])
-    FLOAT_REGISTER_I2C(orientation_euler.x)
-    FLOAT_REGISTER_I2C(orientation_euler.y)
-    FLOAT_REGISTER_I2C(orientation_euler.z)
-    FLOAT_REGISTER_I2C(vertical_speed)
-    FLOAT_REGISTER_I2C(height)
+    FLOAT_REGISTER_I2C(bmp_data[0]) // 0x02
+    FLOAT_REGISTER_I2C(orientation_euler.x) // 0x03
+    FLOAT_REGISTER_I2C(vertical_speed) //0x04
+    FLOAT_REGISTER_I2C(height) // 0x05
 
-    FLOAT_REGISTER_I2C(dt)
-    FLOAT_REGISTER_I2C(tau)
-
+    FLOAT_REGISTER_I2C(dt) // 0x06
+    FLOAT_REGISTER_I2C(tau) // 0x07
 };
 static struct
 {
     uint8_t * mem_address;
     bool mem_address_written;
 } context;
-
-void i2c_write_float(i2c_inst_t *i2c, float data) {
-    uint8_t * buffer = (uint8_t *) &data;
-    i2c_write_byte_raw(i2c, buffer[0]);
-    i2c_write_byte_raw(i2c, buffer[1]);
-    i2c_write_byte_raw(i2c, buffer[2]);
-    i2c_write_byte_raw(i2c, buffer[3]);
-}
 
 static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
     switch (event) {
