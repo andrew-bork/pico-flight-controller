@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <pico/stdlib.h>
 #include <pico/i2c_slave.h>
+
+#include <hardware/pwm.h>
 #include <string.h>
 #include <settings.h>
 #include <hardware/i2c.h>
@@ -13,6 +15,8 @@
 #include <math/quarternion.hpp>
 #include <math/constants.hpp>
 
+#include <pid.hpp>
+
 #include <cmath>
 
 float bmp_data[2];
@@ -22,6 +26,11 @@ math::vector raw_accelerometer_acceleration, raw_gyroscope_angular_velocity;
 math::vector accelerometer_acceleration, gyroscope_angular_velocity;
 math::quarternion orientation(1, 0, 0, 0);
 math::vector orientation_euler;
+
+pid_controller roll_controller, pitch_controller;
+float motor_powers[4] = { 0.0, 0.0, 0.0, 0.0 }; // fl, fr, bl, br
+uint8_t motor_pins[4] = { 21, 20, 19, 18 };
+
 float dt = 0.01;
 float tau = 0.01;
 float tau_z = 0.01;
@@ -33,7 +42,7 @@ float calculate_height(float temp_c, float pressure_k){
     return - UNV_GAS_CONST * temp_k * log(pressure_k / PRESSURE_BENCHMARK) / (MOLAR_MASS_AIR * GRAVITATIONAL_ACCELERATION);
 }
 
-#define FLOAT_REGISTER_I2C(x) (uint8_t *)(&x), (uint8_t *)(&x) + 1, (uint8_t *)(&x) + 2, (uint8_t *)(&x) + 3, 
+#define FLOAT_REGISTER_I2C(x) (uint8_t *)(&x),
 
 uint8_t * mem_locations[] = {
     FLOAT_REGISTER_I2C(raw_accelerometer_acceleration.x) // 0x00
@@ -92,12 +101,13 @@ void core1_main() {
     i2c_slave_init(bus1, pico_i2c_address, &i2c_slave_handler);
 
     while(1) {
-        printf("dt: %f s (%f hz), Roll: %f, Pitch: %f, Altitude: %f\n", 
+        printf("dt: %f s (%f hz), Roll: %.2f, Pitch: %.2f, Altitude: %.2f, Vr: %.2f\n", 
             dt, 
             1/dt, 
             orientation_euler.x * RAD_TO_DEG, 
-            orientation.y * RAD_TO_DEG, 
-            height);
+            orientation_euler.y * RAD_TO_DEG, 
+            height,
+            raw_gyroscope_angular_velocity.x*RAD_TO_DEG);
         sleep_ms(10);
     }
 }
@@ -149,6 +159,14 @@ int main() {
 
     mpu.set_offsets(0.110017, 0.020430, -0.247031, -0.029376, 0.020785, 0.019256);
 
+
+    for(int i = 0; i < 4; i ++) {
+        gpio_set_function(motor_pins[i], GPIO_FUNC_PWM);
+    }
+    pwm_set_wrap(0, )
+
+    roll_controller.kP = 0.01;
+    pitch_controller.kP = 0.01;
 
     printf("finished init\n");
 
@@ -204,6 +222,7 @@ int main() {
         orientation = math::quarternion::from_euler_ZYX(orientation_euler);
         
         gpio_put(LED_PIN, 0);
+        sleep_ms(10);
         // printf("%5.2f %5.2f\n", orientation_euler.x, orientation_euler.y);
     }
 }
